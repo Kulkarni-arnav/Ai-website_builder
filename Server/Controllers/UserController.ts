@@ -1,3 +1,4 @@
+
 import openai from "../configs/openai.js"
 import prisma from "../lib/prisma.js"
 import {Request,Response} from 'express'
@@ -200,14 +201,94 @@ export const createUserProject = async (req: Request, res: Response) => {
 }
 
 //controller function to get a single user project
+
 export const getUserProject = async (req: Request, res: Response) => {
     
-    try { 
+    try {
+        const userId = req.userId;
         
-      }
-    
-    catch (error: any) {
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized User" })
+        }
+
+        const {projectId} = req.params;
+
+        const project = await prisma.websiteProject.findFirst({
+            where: {id: String(projectId), userId },
+            include:{  
+                conversation:{
+                    orderBy:{timestamp:'asc'}
+                },versions:{
+                    orderBy:{timestamp:'asc'}
+                }
+            }
+        })
+        
+        res.json({project })
+    } catch (error: any) {
         console.log(error.code || error.message);
         res.status(500).json({ message:error.message })
     }
+}
+
+//controller function to get all user projects
+
+export const getUserProjects = async (req: Request, res: Response) => {
+    
+    try {
+        const userId = req.userId;
+        
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized User" })
+        }
+
+        const projects = await prisma.websiteProject.findMany({
+            where: { userId },
+            orderBy:{updatedAt:'desc'},
+        })
+        
+        res.json({projects })
+    } catch (error: any) {
+        console.log(error.code || error.message);
+        res.status(500).json({ message:error.message })
+    }
+}
+
+// controller function to toggle project publish
+
+export const togglePublish = async (req: Request, res: Response) => {
+    
+    try {
+        const userId = req.userId;
+        
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized User" })
+        }
+        const {projectId} = req.params;
+
+        const project = await prisma.websiteProject.findFirst({
+            where: {id: String(projectId), userId },
+        })
+
+        if(!project){
+            return res.status(404).json({ message: "Project not found" })
+        }
+
+        await prisma.websiteProject.update({
+            where:{id: String(projectId)},
+            data:{isPublished: !project.isPublished}
+        })
+        
+        res.json({message: project.isPublished ? "Project unpublished successfully" : "Project published successfully" })
+    } catch (error: any) {
+        console.log(error.code || error.message);
+        res.status(500).json({ message:error.message })
+    }
+}
+
+// controller function to purchase credits
+
+export const purchaseCredits = async (req: Request, res: Response) => {
+    
+    
 }
